@@ -1,0 +1,355 @@
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>神秘惊喜</title>
+    <style>
+        /* 全局样式：隐藏滚动条，全屏显示，保证手机适配 */
+        * { 
+            margin: 0; 
+            padding: 0; 
+            box-sizing: border-box; 
+            touch-action: manipulation; /* 防止手机误触缩放 */
+        }
+        body { 
+            height: 100vh; 
+            overflow: hidden; 
+            font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif; 
+            background: #000;
+        }
+        /* 页面容器：初始仅显示封面页，其他隐藏 */
+        .page { 
+            position: absolute; 
+            width: 100%; 
+            height: 100%; 
+            display: none; 
+            transition: opacity 0.5s ease; /* 页面切换淡入效果 */
+        }
+        .page1 { 
+            display: block; 
+            background: #000; 
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .page2 { 
+            background: #f5f0ff; 
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .page3 { 
+            background: #000; 
+            position: relative;
+        }
+        /* 文字样式：高级感渐变+居中 */
+        .text { 
+            text-align: center; 
+            color: #fff;
+            padding: 0 20px;
+        }
+        .page1 .text { 
+            font-size: 2rem; 
+            cursor: pointer;
+            background: linear-gradient(45deg, #ff7e5f, #feb47b);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            transition: scale 0.3s ease;
+        }
+        .page1 .text:active {
+            scale: 1.05; /* 手机点击反馈 */
+        }
+        .page2 .text { 
+            color: #663399; 
+            font-size: 1.8rem;
+            font-weight: 500;
+        }
+        .page3 .text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 2.2rem;
+            line-height: 1.8;
+            background: linear-gradient(45deg, #ff00cc, #ff9900, #00ffff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            z-index: 10; /* 保证文字在烟花上方 */
+            cursor: pointer; /* 提示可点击 */
+        }
+        .page3 .music-tip {
+            position: absolute;
+            bottom: 50px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #fff;
+            font-size: 1rem;
+            opacity: 0.8;
+            z-index: 10;
+        }
+        /* 加载动画（过渡页） */
+        .loader {
+            width: 48px;
+            height: 48px;
+            border: 5px solid #663399;
+            border-bottom-color: transparent;
+            border-radius: 50%;
+            margin-right: 20px;
+            animation: rotation 1s linear infinite;
+        }
+        .page2 .container {
+            display: flex;
+            align-items: center;
+        }
+        @keyframes rotation {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        /* 烟花画布：全屏覆盖 */
+        #fireworks {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 5;
+        }
+    </style>
+</head>
+<body>
+    <!-- 封面页：点击解锁 -->
+    <div class="page page1" onclick="goToPage('page2')">
+        <div class="text">点击解锁专属你的生日惊喜</div>
+    </div>
+
+    <!-- 过渡页：加载动画+自动跳转 -->
+    <div class="page page2">
+        <div class="container">
+            <div class="loader"></div>
+            <div class="text">惊喜加载中...</div>
+        </div>
+    </div>
+
+    <!-- 核心祝福页：烟花+音乐+文字 -->
+    <div class="page page3">
+        <canvas id="fireworks"></canvas>
+        <div class="text" onclick="playBirthdaySong()">
+           致我最珍视的你<br>
+            生辰快乐呀<br>
+            愿你岁岁无忧，温柔坚定<br>
+            往后每一段时光都闪闪发光
+        </div>
+        <div class="music-tip">点击祝福文字播放生日歌</div>
+    </div>
+
+    <script>
+        // 1. 页面跳转函数（含过渡效果）
+        function goToPage(pageId) {
+            // 隐藏所有页面
+            document.querySelectorAll('.page').forEach(page => {
+                page.style.display = 'none';
+                page.style.opacity = 0;
+            });
+            // 显示目标页面并添加淡入
+            const targetPage = document.getElementById(pageId);
+            targetPage.style.display = pageId === 'page1' ? 'flex' : (pageId === 'page2' ? 'flex' : 'block');
+            setTimeout(() => {
+                targetPage.style.opacity = 1;
+            }, 50);
+
+            // 过渡页2秒后跳转到祝福页（移除自动播放音乐，改为点击播放）
+            if (pageId === 'page2') {
+                setTimeout(() => {
+                    goToPage('page3');
+                }, 2000);
+            }
+        }
+
+        // 2. Web Audio API生成生日快乐歌（无需下载音频）
+        function playBirthdaySong() {
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                // 生日快乐歌简谱对应的频率和时长（1=do, 2=re...）
+                const notes = [
+                    { freq: 523.25, duration: 0.5 }, // 1
+                    { freq: 523.25, duration: 0.5 }, // 1
+                    { freq: 587.33, duration: 1 },   // 2
+                    { freq: 523.25, duration: 1 },   // 1
+                    { freq: 698.46, duration: 1 },   // 4
+                    { freq: 659.25, duration: 2 },   // 3
+                    { freq: 523.25, duration: 0.5 }, // 1
+                    { freq: 523.25, duration: 0.5 }, // 1
+                    { freq: 587.33, duration: 1 },   // 2
+                    { freq: 523.25, duration: 1 },   // 1
+                    { freq: 783.99, duration: 1 },   // 5
+                    { freq: 698.46, duration: 2 },   // 4
+                    { freq: 523.25, duration: 0.5 }, // 1
+                    { freq: 523.25, duration: 0.5 }, // 1
+                    { freq: 1046.50, duration: 1 },  // 1(高)
+                    { freq: 880.00, duration: 1 },   // 6
+                    { freq: 698.46, duration: 1 },   // 4
+                    { freq: 659.25, duration: 1 },   // 3
+                    { freq: 587.33, duration: 3 },   // 2
+                    { freq: 987.77, duration: 0.5 }, // 5(高)
+                    { freq: 987.77, duration: 0.5 }, // 5(高)
+                    { freq: 880.00, duration: 1 },   // 6
+                    { freq: 698.46, duration: 1 },   // 4
+                    { freq: 783.99, duration: 1 },   // 5
+                    { freq: 698.46, duration: 3 },   // 4
+                ];
+
+                let startTime = audioCtx.currentTime;
+                notes.forEach(note => {
+                    const oscillator = audioCtx.createOscillator();
+                    const gainNode = audioCtx.createGain();
+                    
+                    oscillator.type = 'sine'; // 音色：正弦波（温柔）
+                    oscillator.frequency.value = note.freq;
+                    gainNode.gain.value = 0.3; // 音量（0.1-1之间，避免刺耳）
+
+                    // 连接节点并播放
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioCtx.destination);
+                    oscillator.start(startTime);
+                    oscillator.stop(startTime + note.duration);
+
+                    // 音符间隔（避免连音）
+                    startTime += note.duration + 0.1;
+                });
+                // 播放后隐藏提示文字
+                document.querySelector('.music-tip').style.opacity = 0;
+            } catch (e) {
+                // 若浏览器不支持，不影响核心功能
+                console.log('音频播放失败，不影响祝福展示');
+            }
+        }
+
+        // 3. 炫酷烟花效果（粒子系统）
+        const canvas = document.getElementById('fireworks');
+        const ctx = canvas.getContext('2d');
+
+        // 设置画布全屏，适配窗口大小变化
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        // 烟花类（从底部发射到高空爆炸）
+        class Firework {
+            constructor() {
+                this.x = Math.random() * canvas.width; // 随机发射x坐标
+                this.y = canvas.height; // 从底部发射
+                this.targetY = Math.random() * 80 + 40; // 随机爆炸高度（40-120px）
+                this.speed = Math.random() * 3 + 2; // 发射速度（2-5px/帧）
+                this.color = ['#ff00cc', '#ff9900', '#00ffff', '#ff4500', '#a8edea', '#fed6e3'][Math.floor(Math.random() * 6)]; // 随机颜色（增加柔和色系）
+                this.radius = 3; // 烟花弹大小
+            }
+
+            // 更新位置
+            update() {
+                this.y -= this.speed;
+                // 到达目标高度后爆炸，生成粒子
+                if (this.y <= this.targetY) {
+                    createParticles(this.x, this.y, this.color);
+                    // 移除当前烟花
+                    fireworks.splice(fireworks.indexOf(this), 1);
+                }
+            }
+
+            // 绘制烟花弹
+            draw() {
+                ctx.save();
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        // 爆炸粒子类（烟花爆炸后的碎片）
+        class Particle {
+            constructor(x, y, color) {
+                this.x = x;
+                this.y = y;
+                this.vx = Math.random() * 6 - 3; // 水平速度（-3到3px/帧，随机方向）
+                this.vy = Math.random() * 6 - 3; // 垂直速度（-3到3px/帧）
+                this.alpha = 1; // 透明度（1=完全可见）
+                this.decay = 0.02; // 透明度衰减速度
+                this.color = color;
+                this.radius = 2; // 粒子大小
+            }
+
+            // 更新位置和透明度
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.alpha -= this.decay;
+            }
+
+            // 绘制粒子
+            draw() {
+                if (this.alpha <= 0) return;
+                ctx.save();
+                ctx.globalAlpha = this.alpha; // 设置透明度
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        // 生成爆炸粒子（每个烟花生成120个粒子，更密集）
+        function createParticles(x, y, color) {
+            for (let i = 0; i < 120; i++) {
+                particles.push(new Particle(x, y, color));
+            }
+        }
+
+        // 存储所有烟花和粒子
+        let fireworks = [];
+        let particles = [];
+
+        // 动画循环（每秒60帧）
+        function animate() {
+            // 半透明背景叠加，形成烟花拖影效果
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // 随机生成烟花（控制频率：5%概率生成，避免过于密集）
+            if (Math.random() < 0.05) {
+                fireworks.push(new Firework());
+            }
+
+            // 更新并绘制所有烟花
+            fireworks.forEach(firework => {
+                firework.update();
+                firework.draw();
+            });
+
+            // 更新并绘制所有粒子，移除透明度为0的粒子
+            particles.forEach((particle, index) => {
+                if (particle.alpha <= 0) {
+                    particles.splice(index, 1);
+                } else {
+                    particle.update();
+                    particle.draw();
+                }
+            });
+
+            // 继续下一帧动画
+            requestAnimationFrame(animate);
+        }
+
+        // 启动烟花动画
+        animate();
+    </script>
+</body>
+</html>
